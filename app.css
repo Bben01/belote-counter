@@ -690,15 +690,34 @@ th.center {
     font-size: 34px;
   }
 
-  .chip-row {
+  .help {
+    padding: 0;
+    gap: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .help-title {
+    display: none;
+  }
+
+  .help p {
     display: none;
   }
 
   .hint-line {
     width: 100%;
-    border-radius: 14px;
     font-size: 11px;
-    padding: 8px 10px;
+    color: var(--muted-foreground);
+    background: transparent;
+    border: none;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .chip-row {
+    display: none;
   }
 
   .chip {
