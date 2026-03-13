@@ -170,7 +170,7 @@ h1 {
   border: 1px solid color-mix(in oklch, var(--border) 75%, transparent);
 }
 
-.scoreboard > :not(.pill-fills) {
+.scoreboard> :not(.pill-fills) {
   position: relative;
   z-index: 1;
 }
@@ -299,6 +299,7 @@ input[type="number"] {
   border-radius: 12px;
   background: color-mix(in oklch, var(--card) 92%, var(--muted));
   color: var(--card-foreground);
+  font-size: 16px;
   outline: none;
   box-shadow: 0 0 0 0 oklch(0 0 0 / 0);
   transition:
@@ -641,6 +642,7 @@ th.center {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .pill-fill,
   .btn,
   input[type="text"],
@@ -676,6 +678,7 @@ th.center {
 
   #objectiveInput {
     width: 88px;
+    font-size: 16px;
   }
 
   .score-pair {
@@ -737,10 +740,10 @@ th.center {
     right: 0;
     bottom: 0;
     display: block;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    background: color-mix(in oklch, var(--card) 84%, transparent);
+    padding: 12px calc(12px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+    background: color-mix(in oklch, var(--card) 88%, transparent);
     border-top: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(18px);
     z-index: 45;
   }
 
