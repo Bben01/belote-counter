@@ -91,8 +91,8 @@ export function parseInput(text, currentTotalNous = 0, currentTotalEux = 0) {
   // 3. Detect belote
   let beloteOwner = null
   if (/\bbelote\b/.test(normalized)) {
-    if (/\bbelote\s+(nous|on)\b|\b(nous|on)\s+belote\b/.test(normalized)) beloteOwner = Team.NOUS
-    else if (/\bbelote\s+(eux|ils|adv)\b|\b(eux|ils|adv)\s+belote\b/.test(normalized)) beloteOwner = Team.EUX
+    if (/\bbelote\s*(?:a|à|pour)?\s*(nous|on)\b|\b(nous|on)\s+belote\b/.test(normalized)) beloteOwner = Team.NOUS
+    else if (/\bbelote\s*(?:a|à|pour)?\s*(eux|ils|adv)\b|\b(eux|ils|adv)\s+belote\b/.test(normalized)) beloteOwner = Team.EUX
     else beloteOwner = taker
   }
 
@@ -100,42 +100,24 @@ export function parseInput(text, currentTotalNous = 0, currentTotalEux = 0) {
   const numbers = Array.from(normalized.matchAll(/\d+/g)).map((m) => Number.parseInt(m[0], 10))
   const hasCapotWord = /\bcapot\b/.test(normalized)
   let foundContract = numbers.find((n) => CONTRACT_SET.has(n))
-  if (!foundContract && hasCapotWord) foundContract = 250
+  if (hasCapotWord) {
+    foundContract = numbers.includes(270) ? 270 : 250
+  }
 
   if (!foundContract) {
     return { error: 'Aucun contrat valide trouvé (attendu : 80–180, 250 ou 270, ou mot-clé "capot").' }
   }
 
-  // Coinche strict: contract required (kept for parity with original logic)
-  if (hasCoinche && !foundContract) return { error: "Coinche indiquée mais aucun contrat explicite trouvé." }
-  if (hasSurcoinche && !foundContract) return { error: "Surcoinche indiquée mais aucun contrat explicite trouvé." }
-
   const contract = foundContract
   const isCapot = contract === 250 || contract === 270 || hasCapotWord
 
   // 5. Contract-only case
-  const hasChuteWord = /\b(chute|dedans)\b/.test(normalized)
+  const hasChuteWord = /(?:\b|\s|^)(chute|chuté|dedans)(?:\b|\s|$)/i.test(normalized)
   if (numbers.length === 1 && !isCapot && !hasChuteWord) {
     return { error: 'Contrat seul sans points. Précisez les points ou indiquez explicitement "chute" ou "dedans".' }
   }
 
-  // 6. Explicit team points
-  const allNous = Array.from(normalized.matchAll(/\b(nous|on)\D*?(\d{1,3})\b/g))
-  const allEux = Array.from(normalized.matchAll(/\b(eux|ils|adv)\D*?(\d{1,3})\b/g))
-
-  let explicitNousPoints = null
-  for (const m of allNous) {
-    const p = Number.parseInt(m[2], 10)
-    if (explicitNousPoints === null || p !== contract) explicitNousPoints = p
-  }
-
-  let explicitEuxPoints = null
-  for (const m of allEux) {
-    const p = Number.parseInt(m[2], 10)
-    if (explicitEuxPoints === null || p !== contract) explicitEuxPoints = p
-  }
-
-  // 7. Non-contract number
+  // 6. Non-contract number
   const contractIndex = numbers.findIndex((n) => n === contract)
   let otherNum
   for (let i = 0; i < numbers.length; i++) {
@@ -145,17 +127,35 @@ export function parseInput(text, currentTotalNous = 0, currentTotalEux = 0) {
     }
   }
 
+  // 7. Explicit team points
+  const nousMatch = Array.from(normalized.matchAll(/\b(nous|on)\b(?:(?!\b(?:nous|on|eux|ils|adv)\b)\D)*?(\d{1,3})\b/g))
+    .map((m) => Number.parseInt(m[2], 10))
+  const euxMatch = Array.from(normalized.matchAll(/\b(eux|ils|adv)\b(?:(?!\b(?:nous|on|eux|ils|adv)\b)\D)*?(\d{1,3})\b/g))
+    .map((m) => Number.parseInt(m[2], 10))
+
+  let explicitNousPoints = null
+  if (otherNum !== undefined && nousMatch.includes(otherNum)) {
+    explicitNousPoints = otherNum
+  }
+
+  let explicitEuxPoints = null
+  if (otherNum !== undefined && euxMatch.includes(otherNum)) {
+    explicitEuxPoints = otherNum
+  }
+
   // 8. Compute taker points
   let pointsScored = null
-  if (hasChuteWord) {
+  if (isCapot) {
+    pointsScored = hasChuteWord ? 0 : 250
+  } else if (hasChuteWord) {
     pointsScored = 0
   } else if (taker === Team.NOUS) {
-    if (explicitNousPoints !== null && explicitNousPoints !== contract) pointsScored = explicitNousPoints
-    else if (explicitEuxPoints !== null && explicitEuxPoints !== contract) pointsScored = TOTAL_CARDS_POINTS - explicitEuxPoints
+    if (explicitNousPoints !== null) pointsScored = explicitNousPoints
+    else if (explicitEuxPoints !== null) pointsScored = TOTAL_CARDS_POINTS - explicitEuxPoints
     else if (otherNum !== undefined) pointsScored = otherNum < 82 ? TOTAL_CARDS_POINTS - otherNum : otherNum
   } else {
-    if (explicitEuxPoints !== null && explicitEuxPoints !== contract) pointsScored = explicitEuxPoints
-    else if (explicitNousPoints !== null && explicitNousPoints !== contract) pointsScored = TOTAL_CARDS_POINTS - explicitNousPoints
+    if (explicitEuxPoints !== null) pointsScored = explicitEuxPoints
+    else if (explicitNousPoints !== null) pointsScored = TOTAL_CARDS_POINTS - explicitNousPoints
     else if (otherNum !== undefined) pointsScored = otherNum < 82 ? TOTAL_CARDS_POINTS - otherNum : otherNum
   }
 
