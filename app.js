@@ -45,10 +45,12 @@ const els = {
 }
 
 const hints = [
+  { text: "contrat réussi: 'Nous 120 fait' (sans points: minimum requis, belote comprise)" },
   { text: "belote: ajoutez 'belote' (ou 'belote nous' / 'belote eux')" },
   { text: "coinche: 'coinche' ou 'cc' (surcoinche: 'sur' ou 'sc')" },
-  { text: "chute: ajoutez 'chute' ou 'dedans' pour une chute" },
-  { text: "capot: 'capot' (ou contrat 250 / 270)" },
+  { text: "chute: 'chuté', 'dedans', 'perdu', 'raté' ou 'pas fait'" },
+  { text: "points explicites: 'Nous 100 défense 62' ou 'Nous 100 fait 80'" },
+  { text: "capot: 'Eux 120 capot' = 370 points, avec 'belote' = 390" },
   { text: "preneur: 'nous'/'on' ou 'eux'/'ils'/'adv'" },
 ]
 
@@ -236,7 +238,7 @@ const render = () => {
     const tr = document.createElement("tr")
 
     const winnerText = r.winner === Team.NOUS ? "Nous" : "Eux"
-    const contractText = r.isCapot ? "capot" : String(r.contract)
+    const contractText = r.isCapot ? `${r.contract} · capot` : String(r.contract)
 
     tr.className = r.winner === Team.NOUS ? "row-nous" : "row-eux"
     tr.innerHTML = `
