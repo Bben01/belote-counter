@@ -30,6 +30,11 @@ Live app (GitHub Pages): https://bben01.github.io/belote-counter/
 	par la coinche. Sans contrat annoncé, `Eux capot` conserve le contrat par défaut
 	de 250 (500 points, ou 520 avec belote).
 - `Nous contrat 100, points 120` : le label `contrat` identifie l'annonce.
+- Coinche / surcoinche : l'équipe gagnante marque 162 + contrat × 2 (× 4), et
+	prend la belote ; l'autre équipe marque 0. `Eux 90 belote coinche fait` = **362**.
+	En capot coinché, le capot vaut toujours 250 (au lieu de 162).
+- Score manuel : une saisie commençant par `=` contourne l'analyse.
+	`= 120 42` (Nous puis Eux), `= eux 360`, `= nous -20 eux 20`.
 
 Les points de cartes sont compris entre 0 et 162, hors belote. Les contrats
 170/180 déclarés « faits » nécessitent donc la belote du preneur.

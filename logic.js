@@ -13,6 +13,7 @@ export const CoincheStatus = Object.freeze({
 
 export const TOTAL_CARDS_POINTS = 162
 export const BELOTE_POINTS = 20
+export const MANUAL_PREFIX = "="
 
 export const VALID_CONTRACTS = Object.freeze([80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 250, 270])
 const CONTRACT_SET = new Set(VALID_CONTRACTS)
@@ -26,6 +27,7 @@ export function calculateScore(data) {
   if (coinche === CoincheStatus.COINCHE) multiplier = 2
   if (coinche === CoincheStatus.SURCOINCHE) multiplier = 4
 
+  const isCoinched = multiplier > 1
   const takerBelote = beloteOwner === taker ? BELOTE_POINTS : 0
 
   let isSuccess
@@ -37,13 +39,14 @@ export function calculateScore(data) {
   let winner = taker
 
   if (isSuccess) {
-    const cardTaker = isCapot ? 250 : pointsScored
-    const cardDefense = isCapot ? 0 : TOTAL_CARDS_POINTS - pointsScored
+    const cardTaker = isCapot ? 250 : isCoinched ? TOTAL_CARDS_POINTS : pointsScored
+    const cardDefense = isCapot || isCoinched ? 0 : TOTAL_CARDS_POINTS - pointsScored
 
     let takerPoints = cardTaker + contract * multiplier
     let defensePoints = cardDefense
 
-    if (beloteOwner === taker) takerPoints += BELOTE_POINTS
+    // In a coinche, the winning team takes the belote.
+    if (beloteOwner === taker || (beloteOwner && isCoinched)) takerPoints += BELOTE_POINTS
     else if (beloteOwner) defensePoints += BELOTE_POINTS
 
     if (taker === Team.NOUS) {
@@ -55,7 +58,7 @@ export function calculateScore(data) {
     }
   } else {
     winner = taker === Team.NOUS ? Team.EUX : Team.NOUS
-    let defensePoints = 162 + contract * multiplier
+    let defensePoints = TOTAL_CARDS_POINTS + contract * multiplier
     if (beloteOwner) defensePoints += BELOTE_POINTS
 
     if (taker === Team.NOUS) deltaEux = defensePoints
@@ -119,7 +122,49 @@ function detectOutcome(text, taker) {
   return { success, failure }
 }
 
+// "= nous 120 eux 42" or "= 120 42" (Nous then Eux) bypasses the parser.
+function parseManual(text, body, currentTotalNous, currentTotalEux) {
+  const normalized = normalizeInput(body)
+  const labeled = Array.from(normalized.matchAll(new RegExp(`\\b(${TEAM_WORD})\\b\\s*[:=]?\\s*(-?\\d+)\\b`, "g")))
+  let deltaNous = 0
+  let deltaEux = 0
+  if (labeled.length) {
+    const seen = new Set()
+    for (const match of labeled) {
+      const team = teamFromWord(match[1])
+      if (seen.has(team)) return { error: "Score manuel : chaque équipe ne peut apparaître qu’une fois." }
+      seen.add(team)
+      if (team === Team.NOUS) deltaNous = Number(match[2])
+      else deltaEux = Number(match[2])
+    }
+  } else {
+    const numbers = normalized.match(/-?\d+/g) ?? []
+    if (numbers.length !== 2) {
+      return { error: 'Score manuel : utilisez "= 120 42" (Nous puis Eux) ou "= nous 120 eux 42".' }
+    }
+    ;[deltaNous, deltaEux] = numbers.map(Number)
+  }
+
+  return {
+    id: nowId(),
+    rawInput: text,
+    manual: true,
+    contract: null,
+    isCapot: false,
+    deltaNous,
+    deltaEux,
+    totalNous: currentTotalNous + deltaNous,
+    totalEux: currentTotalEux + deltaEux,
+    winner: deltaNous > deltaEux ? Team.NOUS : deltaEux > deltaNous ? Team.EUX : null,
+  }
+}
+
 export function parseInput(text, currentTotalNous = 0, currentTotalEux = 0) {
+  const trimmed = String(text ?? "").trim()
+  if (trimmed.startsWith(MANUAL_PREFIX)) {
+    return parseManual(text, trimmed.slice(MANUAL_PREFIX.length), currentTotalNous, currentTotalEux)
+  }
+
   const normalized = normalizeInput(text)
 
   // Keep belote ownership separate from the taker and from card-point labels.

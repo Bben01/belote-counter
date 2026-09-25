@@ -52,6 +52,8 @@ const hints = [
   { text: "points explicites: 'Nous 100 défense 62' ou 'Nous 100 fait 80'" },
   { text: "capot: 'Eux 120 capot' = 370 points, avec 'belote' = 390" },
   { text: "preneur: 'nous'/'on' ou 'eux'/'ils'/'adv'" },
+  { text: "coinche réussie: 162 + contrat x2 + belote, ex. 'Eux 90 belote coinche fait' = 362" },
+  { text: "score manuel: '= 120 42' (Nous puis Eux) ou '= eux 360', négatifs acceptés" },
 ]
 
 let hintIndex = 0
@@ -237,10 +239,10 @@ const render = () => {
     const r = state.rounds[i]
     const tr = document.createElement("tr")
 
-    const winnerText = r.winner === Team.NOUS ? "Nous" : "Eux"
-    const contractText = r.isCapot ? `${r.contract} · capot` : String(r.contract)
+    const winnerText = r.winner === Team.NOUS ? "Nous" : r.winner === Team.EUX ? "Eux" : "—"
+    const contractText = r.manual ? "manuel" : r.isCapot ? `${r.contract} · capot` : String(r.contract)
 
-    tr.className = r.winner === Team.NOUS ? "row-nous" : "row-eux"
+    tr.className = r.winner === Team.NOUS ? "row-nous" : r.winner === Team.EUX ? "row-eux" : ""
     tr.innerHTML = `
       <td class="mono">${i + 1}</td>
       <td>${escapeHtml(r.rawInput)}</td>

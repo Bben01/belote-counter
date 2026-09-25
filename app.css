@@ -421,8 +421,9 @@ input[type="number"]:focus {
 
 .help {
   display: grid;
-  gap: 10px;
-  padding: 12px 12px;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
   border-radius: 14px;
   background: linear-gradient(180deg,
       color-mix(in oklch, var(--secondary) 88%, transparent),
@@ -453,14 +454,14 @@ input[type="number"]:focus {
 .chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .chip {
   border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
   background: color-mix(in oklch, var(--card) 95%, var(--muted));
   border-radius: 999px;
-  padding: 8px 10px;
+  padding: 5px 9px;
   font-size: 12px;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 180ms ease, background 180ms ease;

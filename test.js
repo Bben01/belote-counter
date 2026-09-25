@@ -42,20 +42,60 @@ Deno.test("chute/dedans makes taker fail", () => {
   eq(r.deltaNous, 0)
 })
 
-Deno.test("coinche doubles contract points", () => {
+Deno.test("coinche: winner takes 162 + contract*2", () => {
   const r = parseInput("Nous 80 coinche 120", 0, 0)
   eq(r.isSuccess, true)
-  eq(r.deltaNous, 280)
-  eq(r.deltaEux, 42)
+  eq(r.deltaNous, 322)
+  eq(r.deltaEux, 0)
 })
 
-Deno.test("surcoinche quadruples contract points", () => {
+Deno.test("surcoinche: winner takes 162 + contract*4", () => {
   const r = parseInput("Eux 80 sur 120", 0, 0)
   eq(r.taker, Team.EUX)
   eq(r.isSuccess, true)
-  eq(r.deltaEux, 440)
-  eq(r.deltaNous, 42)
+  eq(r.deltaEux, 482)
+  eq(r.deltaNous, 0)
 })
+
+for (const [text, deltaNous, deltaEux] of [
+  ["Eux 90 belote coinche fait", 0, 362],
+  ["Eux 90 coinche fait belote nous", 0, 362],
+  ["Eux 90 coinche chute belote eux", 362, 0],
+  ["Nous 90 surcoinche fait belote", 542, 0],
+]) {
+  Deno.test(`coinche winner takes the belote: ${text}`, () => {
+    const r = parseInput(text, 0, 0)
+    eq(r.error, undefined)
+    eq(r.deltaNous, deltaNous)
+    eq(r.deltaEux, deltaEux)
+  })
+}
+
+for (const [text, deltaNous, deltaEux, winner] of [
+  ["= 120 42", 120, 42, Team.NOUS],
+  ["=nous 100 eux 62", 100, 62, Team.NOUS],
+  ["= eux 360", 0, 360, Team.EUX],
+  ["= eux: 20, nous: -20", -20, 20, Team.EUX],
+  ["  = 0 0", 0, 0, null],
+]) {
+  Deno.test(`manual score override: ${text}`, () => {
+    const r = parseInput(text, 10, 20)
+    eq(r.error, undefined)
+    eq(r.manual, true)
+    eq(r.rawInput, text)
+    eq(r.deltaNous, deltaNous)
+    eq(r.deltaEux, deltaEux)
+    eq(r.totalNous, 10 + deltaNous)
+    eq(r.totalEux, 20 + deltaEux)
+    eq(r.winner, winner)
+  })
+}
+
+for (const text of ["=", "= 120", "= 1 2 3", "= nous 1 nous 2"]) {
+  Deno.test(`manual score rejects: ${text}`, () => {
+    assert("error" in parseInput(text), "expected error")
+  })
+}
 
 Deno.test("belote defaults to taker", () => {
   const r = parseInput("Eux 100 120 belote", 0, 0)
@@ -151,7 +191,7 @@ Deno.test("belote owner parsing: 'nous belote' and 'belote eux'", () => {
 Deno.test("surcoinche beats coinche if both present", () => {
   const r = parseInput("Nous 80 cc sur 120", 0, 0)
   eq(r.coinche, CoincheStatus.SURCOINCHE)
-  eq(r.deltaNous, 440) // 120 + 80*4
+  eq(r.deltaNous, 482) // 162 + 80*4
 })
 
 Deno.test("explicit defense points: Nous 100 Eux 40 => taker points = 162-40", () => {
@@ -184,10 +224,10 @@ Deno.test("explicit points equal to contract are ignored, other side used", () =
 Deno.test("coinche/surcoinche abbreviations: cc/sc", () => {
   const a = parseInput("Nous 80 cc 120", 0, 0)
   eq(a.coinche, CoincheStatus.COINCHE)
-  eq(a.deltaNous, 280)
+  eq(a.deltaNous, 322)
   const b = parseInput("Eux 80 sc 120", 0, 0)
   eq(b.coinche, CoincheStatus.SURCOINCHE)
-  eq(b.deltaEux, 440)
+  eq(b.deltaEux, 482)
 })
 
 Deno.test("capot keyword implies contract 250", () => {
@@ -494,7 +534,7 @@ for (const phrase of ["coinché", "coinchée", "coinchés", "coinchées", "coinc
   Deno.test(`coinche variants: ${phrase}`, () => {
     const r = parseInput(`Nous 100 ${phrase} fait`)
     eq(r.coinche, CoincheStatus.COINCHE)
-    eq(r.deltaNous, 300)
+    eq(r.deltaNous, 362)
   })
 }
 
@@ -502,7 +542,7 @@ for (const phrase of ["surcoinché", "surcoinchée", "sur-coinché", "sur coinch
   Deno.test(`surcoinche variants: ${phrase}`, () => {
     const r = parseInput(`Eux 100 ${phrase} fait`)
     eq(r.coinche, CoincheStatus.SURCOINCHE)
-    eq(r.deltaEux, 500)
+    eq(r.deltaEux, 562)
   })
 }
 
