@@ -29,6 +29,9 @@ Live app (GitHub Pages): https://bben01.github.io/belote-counter/
 	`Eux 120 capot belote` ajoute 20, soit **390**. La belote n'est pas multipliée
 	par la coinche. Sans contrat annoncé, `Eux capot` conserve le contrat par défaut
 	de 250 (500 points, ou 520 avec belote).
+- Capot de la défense : `Nous 100 eux capot`, `capot pour eux`, `défense capot`,
+	`capot inversé`, `contre-capot`. La défense marque 250 + contrat (× coinche),
+	soit **350** pour `Nous 100 eux capot`.
 - `Nous contrat 100, points 120` : le label `contrat` identifie l'annonce.
 - Coinche / surcoinche : l'équipe gagnante marque 162 + contrat × 2 (× 4), et
 	prend la belote ; l'autre équipe marque 0. `Eux 90 belote coinche fait` = **362**.

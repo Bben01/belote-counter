@@ -569,6 +569,33 @@ for (const phrase of ["adversaire", "adversaires", "elles", "les autres", "l’a
   })
 }
 
+for (const [text, deltaNous, deltaEux] of [
+  ["Nous 100 eux capot", 0, 350],
+  ["Nous 100 capot pour eux", 0, 350],
+  ["Nous 100 capot inversé", 0, 350],
+  ["Nous 100 contre-capot belote", 0, 370],
+  ["Nous 100 défense capot", 0, 350],
+  ["Eux 120 nous font capot", 370, 0],
+  ["Eux 120 coinche capot pour nous", 490, 0],
+  ["Eux 120 coinche capot pour nous belote eux", 510, 0],
+  ["Nous 250 eux capot", 0, 500],
+]) {
+  Deno.test(`defense capot scores 250 + contract: ${text}`, () => {
+    const r = parseInput(text)
+    eq(r.error, undefined)
+    eq(r.isDefenseCapot, true)
+    eq(r.isSuccess, false)
+    eq(r.deltaNous, deltaNous)
+    eq(r.deltaEux, deltaEux)
+  })
+}
+
+for (const text of ["Nous 100 fait, eux capot", "Nous 100 capot inversé nous capot"]) {
+  Deno.test(`defense capot rejects contradictions: ${text}`, () => {
+    assert(parseInput(text).error, `expected error for ${text}`)
+  })
+}
+
 for (const text of ["", "fait", "Nous 120", "Nous 120 parfait", "Nous 120 défaite", "Nous 100 eux ont fait", "Nous 170 fait", "Nous 180 fait belote eux", "Nous 100 163", "Nous 100 défense 200", "Nous contrat 70 points 120", "Nous 100 120 belote nous belote eux"]) {
   Deno.test(`reject incomplete or impossible phrase: ${text}`, () => {
     assert(parseInput(text).error, `expected error for ${text}`)

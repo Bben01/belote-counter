@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = "belote-counter-v6"
+const CACHE_NAME = "belote-counter-v7"
 const PRECACHE_URLS = ["./", "./index.html", "./app.css", "./app.js", "./logic.js", "./manifest.webmanifest", "./favicon.ico", "./icons/icon-192.png", "./icons/icon-512.png"]
 
 self.addEventListener("install", (event) => {

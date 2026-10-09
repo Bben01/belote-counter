@@ -322,6 +322,17 @@ input[type="number"]:focus {
   font-size: 14px;
 }
 
+#objectiveInput.invalid {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--destructive) 18%, transparent);
+  animation: shake 320ms ease;
+}
+
+@keyframes shake {
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
 .btn {
   display: inline-flex;
   gap: 10px;
@@ -591,6 +602,7 @@ th.center {
 
 .modal {
   width: min(560px, 100%);
+  outline: none;
   border-radius: 22px;
   padding: 26px 22px;
   background: color-mix(in oklch, var(--card) 94%, transparent);
@@ -638,6 +650,58 @@ th.center {
   display: none;
 }
 
+.modal-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.modal-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100% - 24px);
+  padding: 6px 6px 6px 16px;
+  border-radius: 14px;
+  background: var(--foreground);
+  color: var(--background);
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, 16px);
+  transition: opacity 180ms ease, transform 220ms cubic-bezier(.2, .9, .2, 1), visibility 0s linear 220ms;
+}
+
+.toast.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+  transition-delay: 0s;
+}
+
+.toast .btn {
+  color: oklch(0.8 0.12 265);
+  padding: 8px 12px;
+}
+
+.toast .btn:hover {
+  background: oklch(1 0 0 / 0.08);
+}
+
 .canvas-confetti.active {
   display: block;
 }
@@ -648,8 +712,13 @@ th.center {
   .btn,
   input[type="text"],
   input[type="number"],
-  .chip {
+  .chip,
+  .toast {
     transition: none !important;
+  }
+
+  #objectiveInput.invalid {
+    animation: none;
   }
 }
 
@@ -762,5 +831,9 @@ th.center {
     flex: 1 1 auto;
     justify-content: center;
     padding: 10px 12px;
+  }
+
+  .toast {
+    bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }

@@ -25,7 +25,7 @@
   <canvas class="canvas-confetti" id="confetti" aria-hidden="true"></canvas>
 
   <div class="overlay" id="winOverlay" role="dialog" aria-modal="true" aria-labelledby="winTitle">
-    <div class="modal">
+    <div class="modal" id="winModal" tabindex="-1">
       <div class="trophy" aria-hidden="true">
         <svg class="icon" viewBox="0 0 24 24" fill="none">
           <path d="M8 21h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -39,9 +39,10 @@
           <path d="M6 6H4a2 2 0 0 0 0 4h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
         </svg>
       </div>
-      <h2 id="winTitle">Victoire!</h2>
+      <h2 id="winTitle">Victoire !</h2>
       <div class="scores" id="winScores"></div>
-      <button class="btn primary" id="winRestartBtn" type="button">
+      <div class="modal-actions">
+        <button class="btn primary" id="winRestartBtn" type="button">
         <svg class="icon" viewBox="0 0 24 24" fill="none">
           <path d="M3 12a9 9 0 0 1 15.4-6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           <path d="M18 3v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -52,10 +53,20 @@
         </svg>
         <span>Nouvelle Partie</span>
       </button>
+        <div class="modal-secondary">
+          <button class="btn secondary" id="winUndoBtn" type="button">Annuler la dernière donne</button>
+          <button class="btn ghost" id="winCloseBtn" type="button">Voir l’historique</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <main class="container">
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span id="toastText"></span>
+    <button class="btn ghost" id="toastUndoBtn" type="button">Annuler</button>
+  </div>
+
+  <main class="container" id="main">
     <div class="stack">
       <section class="card" aria-label="Belote Counter">
         <div class="card-header">
@@ -162,7 +173,7 @@
               Score manuel : <span class="mono">= 120 42</span> (Nous, Eux).
             </p>
             <div class="hint-line mono" id="hintLine" role="status" aria-live="polite">Tip: —</div>
-            <div class="chip-row" aria-hidden="true">
+            <div class="chip-row">
               <button class="chip mono" type="button" data-example="Nous 120 fait">Nous 120 fait</button>
               <button class="chip mono" type="button" data-example="Eux 120 90 belote">Eux 120 90 belote</button>
               <button class="chip mono" type="button" data-example="Nous 90 coinche fait">Nous 90 coinche fait</button>
@@ -207,8 +218,8 @@
 
       <section class="card dashed" id="emptyCard">
         <div class="empty">
-          <div class="big">Aucune donne enregistree</div>
-          <div class="small">Ajoutez votre premiere donne ci-dessus</div>
+          <div class="big">Aucune donne enregistrée</div>
+          <div class="small">Ajoutez votre première donne ci-dessus</div>
         </div>
       </section>
     </div>

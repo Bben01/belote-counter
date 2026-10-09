@@ -2,8 +2,11 @@ import { Team, parseInput } from "./logic.js"
 
 const STORAGE_KEY = "belote-game-state"
 const HINT_KEY = "belote-hint-index"
+const UNDO_MS = 5000
 
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n))
+const mobileMq = window.matchMedia("(max-width: 520px)")
+const finePointer = window.matchMedia("(pointer: fine)").matches
 
 const state = {
   rounds: [],
@@ -11,6 +14,7 @@ const state = {
   totalEux: 0,
   targetScore: 2000,
   winner: null,
+  winDismissed: false,
 }
 
 const els = {
@@ -34,9 +38,16 @@ const els = {
   emptyCard: document.getElementById("emptyCard"),
   roundsTbody: document.getElementById("roundsTbody"),
   winOverlay: document.getElementById("winOverlay"),
+  winModal: document.getElementById("winModal"),
   winTitle: document.getElementById("winTitle"),
   winScores: document.getElementById("winScores"),
   winRestartBtn: document.getElementById("winRestartBtn"),
+  winUndoBtn: document.getElementById("winUndoBtn"),
+  winCloseBtn: document.getElementById("winCloseBtn"),
+  toast: document.getElementById("toast"),
+  toastText: document.getElementById("toastText"),
+  toastUndoBtn: document.getElementById("toastUndoBtn"),
+  main: document.getElementById("main"),
   confetti: document.getElementById("confetti"),
   hintLine: document.getElementById("hintLine"),
   controls: document.getElementById("controls"),
@@ -54,10 +65,10 @@ const hints = [
   { text: "preneur: 'nous'/'on' ou 'eux'/'ils'/'adv'" },
   { text: "coinche réussie: 162 + contrat x2 + belote, ex. 'Eux 90 belote coinche fait' = 362" },
   { text: "score manuel: '= 120 42' (Nous puis Eux) ou '= eux 360', négatifs acceptés" },
+  { text: "capot de la défense: 'Nous 100 eux capot' ou 'capot inversé' = 250 + contrat" },
 ]
 
 let hintIndex = 0
-let currentHint = hints[0]
 
 const loadHintIndex = () => {
   try {
@@ -78,16 +89,14 @@ const saveHintIndex = () => {
 }
 
 const setHint = (h) => {
-  currentHint = h
   if (!els.hintLine) return
   els.hintLine.textContent = `Tip: ${h.text}`
 }
 
 const nextHint = () => {
-  const h = hints[hintIndex % hints.length]
-  hintIndex++
+  hintIndex = (hintIndex + 1) % hints.length
   saveHintIndex()
-  setHint(h)
+  setHint(hints[hintIndex])
 }
 
 const setError = (msg) => {
@@ -109,6 +118,7 @@ const saveState = () => {
         totalNous: state.totalNous,
         totalEux: state.totalEux,
         targetScore: state.targetScore,
+        winDismissed: state.winDismissed,
       }),
     )
   } catch {
@@ -126,8 +136,16 @@ const loadState = () => {
     if (Number.isFinite(parsed.totalNous)) state.totalNous = parsed.totalNous
     if (Number.isFinite(parsed.totalEux)) state.totalEux = parsed.totalEux
     if (Number.isFinite(parsed.targetScore)) state.targetScore = parsed.targetScore
+    state.winDismissed = parsed.winDismissed === true
   } catch {
     // ignore
+  }
+  // Re-score saved rounds so rule changes apply to games in progress.
+  const r = recalcFromScratch(state.rounds)
+  if (!r.error) {
+    state.rounds = r.rounds
+    state.totalNous = r.totalNous
+    state.totalEux = r.totalEux
   }
 }
 
@@ -135,6 +153,12 @@ const computeWinner = () => {
   if (state.totalNous >= state.targetScore && state.totalNous > state.totalEux) return Team.NOUS
   if (state.totalEux >= state.targetScore && state.totalEux > state.totalNous) return Team.EUX
   return null
+}
+
+const updateWinner = () => {
+  const w = computeWinner()
+  if (w !== state.winner) state.winDismissed = false
+  state.winner = w
 }
 
 // =========================
@@ -213,6 +237,9 @@ const confetti = (() => {
 // =========================
 // Rendering
 // =========================
+let celebratedWinner = null
+let winShown = false
+
 const render = () => {
   els.scoreNous.textContent = String(state.totalNous)
   els.scoreEux.textContent = String(state.totalEux)
@@ -240,7 +267,13 @@ const render = () => {
     const tr = document.createElement("tr")
 
     const winnerText = r.winner === Team.NOUS ? "Nous" : r.winner === Team.EUX ? "Eux" : "—"
-    const contractText = r.manual ? "manuel" : r.isCapot ? `${r.contract} · capot` : String(r.contract)
+    const contractText = r.manual
+      ? "manuel"
+      : r.isDefenseCapot
+      ? `${r.contract} · capot déf.`
+      : r.isCapot
+      ? `${r.contract} · capot`
+      : String(r.contract)
 
     tr.className = r.winner === Team.NOUS ? "row-nous" : r.winner === Team.EUX ? "row-eux" : ""
     tr.innerHTML = `
@@ -253,7 +286,7 @@ const render = () => {
       <td class="right mono">${r.totalNous}</td>
       <td class="right mono">${r.totalEux}</td>
       <td class="center td-actions">
-        <button class="btn ghost icon table-action" type="button" aria-label="Supprimer">
+        <button class="btn ghost icon table-action" type="button" aria-label="Supprimer la donne ${i + 1}">
           <svg class="icon" viewBox="0 0 24 24" fill="none">
             <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             <path d="M8 6V4h8v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -269,19 +302,25 @@ const render = () => {
     els.roundsTbody.appendChild(tr)
   }
 
-  if (state.winner) {
-    els.winOverlay.classList.add("active")
-    els.winTitle.textContent = state.winner === Team.NOUS ? "Nous avons gagne!" : "Eux ont gagne!"
+  const showWin = Boolean(state.winner) && !state.winDismissed
+  els.winOverlay.classList.toggle("active", showWin)
+  els.main.inert = showWin
+  els.mobileFooter.inert = showWin
+  if (showWin) {
+    els.winTitle.textContent = state.winner === Team.NOUS ? "Nous avons gagné !" : "Ils ont gagné !"
     els.winScores.innerHTML = `
-      <div><span class="team-nous">Nous</span>: <span class="mono">${state.totalNous}</span> pts</div>
-      <div><span class="team-eux">Eux</span>: <span class="mono">${state.totalEux}</span> pts</div>
+      <div><span class="team-nous">Nous</span> : <span class="mono">${state.totalNous}</span> pts</div>
+      <div><span class="team-eux">Eux</span> : <span class="mono">${state.totalEux}</span> pts</div>
     `
-    confetti.start()
+    if (state.winner !== celebratedWinner) confetti.start()
+    if (!winShown) els.winModal.focus()
   } else {
-    els.winOverlay.classList.remove("active")
     els.winScores.textContent = ""
     confetti.stop()
+    if (winShown && finePointer) els.roundInput.focus()
   }
+  winShown = showWin
+  celebratedWinner = state.winner
 }
 
 const escapeHtml = (s) =>
@@ -305,10 +344,49 @@ const recalcFromScratch = (rounds) => {
     if (parsed.error) return { error: parsed.error }
     totalNous = parsed.totalNous
     totalEux = parsed.totalEux
-    newRounds.push(parsed)
+    newRounds.push({ ...parsed, id: r.id ?? parsed.id })
   }
 
   return { rounds: newRounds, totalNous, totalEux }
+}
+
+// =========================
+// Undo toast
+// =========================
+let toastTimer = 0
+let undoSnapshot = null
+
+const snapshot = () => ({
+  rounds: state.rounds.slice(),
+  totalNous: state.totalNous,
+  totalEux: state.totalEux,
+  winner: state.winner,
+  winDismissed: state.winDismissed,
+})
+
+const hideToast = () => {
+  clearTimeout(toastTimer)
+  els.toast.classList.remove("active")
+  undoSnapshot = null
+}
+
+const showUndo = (message, snap) => {
+  clearTimeout(toastTimer)
+  undoSnapshot = snap
+  els.toastText.textContent = message
+  els.toast.classList.add("active")
+  toastTimer = setTimeout(hideToast, UNDO_MS)
+}
+
+const undo = () => {
+  if (!undoSnapshot) return
+  Object.assign(state, undoSnapshot)
+  // Restoring a previous win should not replay the celebration.
+  celebratedWinner = state.winner
+  hideToast()
+  setError(null)
+  saveState()
+  render()
 }
 
 const handleAddRound = () => {
@@ -325,7 +403,7 @@ const handleAddRound = () => {
   state.rounds.push(result)
   state.totalNous = result.totalNous
   state.totalEux = result.totalEux
-  state.winner = computeWinner()
+  updateWinner()
   saveState()
   nextHint()
 
@@ -335,6 +413,7 @@ const handleAddRound = () => {
 }
 
 const deleteRoundAt = (idx) => {
+  const snap = snapshot()
   const next = state.rounds.slice(0, idx).concat(state.rounds.slice(idx + 1))
   const r = recalcFromScratch(next)
   if (r.error) {
@@ -345,22 +424,47 @@ const deleteRoundAt = (idx) => {
   state.rounds = r.rounds
   state.totalNous = r.totalNous
   state.totalEux = r.totalEux
-  state.winner = computeWinner()
+  updateWinner()
   saveState()
   render()
+  showUndo(`Donne ${idx + 1} supprimée`, snap)
 }
 
 const handleRestart = () => {
+  if (state.rounds.length === 0) return
+  const snap = snapshot()
   state.rounds = []
   state.totalNous = 0
   state.totalEux = 0
   state.winner = null
+  state.winDismissed = false
   saveState()
   render()
-  els.roundInput.focus()
+  showUndo("Nouvelle partie commencée", snap)
+  if (finePointer) els.roundInput.focus()
+}
+
+const dismissWin = () => {
+  state.winDismissed = true
+  saveState()
+  render()
+}
+
+const undoLastRound = () => {
+  if (state.rounds.length) deleteRoundAt(state.rounds.length - 1)
+}
+
+let editingObjective = false
+
+const closeObjectiveEditor = () => {
+  editingObjective = false
+  els.objectiveInput.classList.remove("invalid")
+  els.objectiveEdit.style.display = "none"
+  els.objectiveView.style.display = "flex"
 }
 
 const startEditObjective = () => {
+  editingObjective = true
   els.objectiveView.style.display = "none"
   els.objectiveEdit.style.display = "flex"
   els.objectiveInput.value = String(state.targetScore)
@@ -368,22 +472,34 @@ const startEditObjective = () => {
   els.objectiveInput.select()
 }
 
+const parseObjective = () => {
+  const n = Number(els.objectiveInput.value)
+  return Number.isInteger(n) && n > 0 ? n : null
+}
+
 const commitObjective = () => {
-  const newTarget = Number.parseInt(els.objectiveInput.value, 10)
-  if (!Number.isNaN(newTarget) && newTarget > 0) {
-    state.targetScore = newTarget
-    state.winner = computeWinner()
-    saveState()
+  if (!editingObjective) return
+  const newTarget = parseObjective()
+  if (newTarget === null) {
+    const input = els.objectiveInput
+    input.classList.remove("invalid")
+    // Force reflow so the shake animation replays.
+    void input.offsetWidth
+    input.classList.add("invalid")
+    input.focus()
+    return
   }
-  els.objectiveEdit.style.display = "none"
-  els.objectiveView.style.display = "flex"
+  state.targetScore = newTarget
+  updateWinner()
+  saveState()
+  closeObjectiveEditor()
   render()
 }
 
 const cancelObjective = () => {
-  els.objectiveEdit.style.display = "none"
-  els.objectiveView.style.display = "flex"
-  els.roundInput.focus()
+  if (!editingObjective) return
+  closeObjectiveEditor()
+  if (finePointer) els.roundInput.focus()
 }
 
 const wireExamples = () => {
@@ -399,8 +515,7 @@ const wireExamples = () => {
 
 const relocateControlsForMobile = () => {
   if (!els.controls || !els.headerRow || !els.mobileFooter) return
-  const isMobile = window.matchMedia && window.matchMedia("(max-width: 520px)").matches
-  if (isMobile) {
+  if (mobileMq.matches) {
     els.mobileFooter.setAttribute("aria-hidden", "false")
     if (els.controls.parentElement !== els.mobileFooter) {
       els.mobileFooter.appendChild(els.controls)
@@ -418,12 +533,21 @@ const relocateControlsForMobile = () => {
 // =========================
 els.addBtn.addEventListener("click", handleAddRound)
 els.roundInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") handleAddRound()
+  if (e.key === "Enter" && !e.isComposing) {
+    e.preventDefault()
+    handleAddRound()
+  }
 })
 els.roundInput.addEventListener("input", () => setError(null))
 
 els.restartBtn.addEventListener("click", handleRestart)
 els.winRestartBtn.addEventListener("click", handleRestart)
+els.winUndoBtn.addEventListener("click", undoLastRound)
+els.winCloseBtn.addEventListener("click", dismissWin)
+els.toastUndoBtn.addEventListener("click", undo)
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && els.winOverlay.classList.contains("active")) dismissWin()
+})
 
 els.editObjectiveBtn.addEventListener("click", startEditObjective)
 els.objectiveView.addEventListener("click", (e) => {
@@ -433,8 +557,21 @@ els.objectiveView.addEventListener("click", (e) => {
 })
 els.saveObjectiveBtn.addEventListener("click", commitObjective)
 els.cancelObjectiveBtn.addEventListener("click", cancelObjective)
+// Keep focus in the input so tapping save/cancel doesn't trigger the blur commit first (iOS).
+for (const btn of [els.saveObjectiveBtn, els.cancelObjectiveBtn]) {
+  btn.addEventListener("pointerdown", (e) => e.preventDefault())
+}
+els.objectiveEdit.addEventListener("focusout", (e) => {
+  if (els.objectiveEdit.contains(e.relatedTarget)) return
+  if (parseObjective() === null) cancelObjective()
+  else commitObjective()
+})
+els.objectiveInput.addEventListener("input", () => els.objectiveInput.classList.remove("invalid"))
 els.objectiveInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") commitObjective()
+  if (e.key === "Enter") {
+    e.preventDefault()
+    commitObjective()
+  }
   if (e.key === "Escape") {
     cancelObjective()
   }
@@ -446,10 +583,12 @@ loadHintIndex()
 setHint(hints[hintIndex % hints.length])
 wireExamples()
 relocateControlsForMobile()
-window.addEventListener("resize", relocateControlsForMobile)
+mobileMq.addEventListener("change", relocateControlsForMobile)
+// Keep the persisted dismissal; a game already won should not replay the confetti.
 state.winner = computeWinner()
+celebratedWinner = state.winner
 render()
-els.roundInput.focus()
+if (finePointer) els.roundInput.focus()
 
 // PWA
 if ("serviceWorker" in navigator) {
