@@ -1,7 +1,20 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = "belote-counter-v10"
-const PRECACHE_URLS = ["./", "./index.html", "./app.css", "./app.js", "./logic.js", "./manifest.webmanifest", "./favicon.ico", "./icons/icon-192.png", "./icons/icon-512.png"]
+const CACHE_NAME = "belote-counter-v11"
+const PRECACHE_URLS = [
+  "./",
+  "./index.html",
+  "./app.css",
+  "./app.js",
+  "./logic.js",
+  "./manifest.webmanifest",
+  "./icons/favicon-32.png",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/maskable-192.png",
+  "./icons/maskable-512.png",
+  "./icons/apple-touch-icon.png",
+]
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

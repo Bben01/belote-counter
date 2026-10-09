@@ -950,11 +950,31 @@ const wireDock = () => {
     buzz(5)
   })
 
+  // Chromium: on mobile, overlay the keyboard (no page reflow) and position via env(keyboard-inset-height).
+  if ("virtualKeyboard" in navigator) {
+    const mobile = matchMedia("(max-width: 520px)")
+    const apply = () => (navigator.virtualKeyboard.overlaysContent = mobile.matches)
+    apply()
+    mobile.addEventListener("change", apply)
+    return
+  }
+
   const vv = window.visualViewport
   if (!vv) return
-  const sync = () => root.setProperty("--kb", `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`)
-  vv.addEventListener("resize", sync)
-  vv.addEventListener("scroll", sync)
+  let kb = 0
+  let frame = 0
+  const sync = () => {
+    frame = 0
+    const next = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
+    if (next === kb) return
+    kb = next
+    root.setProperty("--kb", `${kb}px`)
+  }
+  const schedule = () => {
+    if (!frame) frame = requestAnimationFrame(sync)
+  }
+  vv.addEventListener("resize", schedule)
+  vv.addEventListener("scroll", schedule)
 }
 
 // =========================

@@ -20,6 +20,8 @@
   --glow-b: oklch(0.98 0.02 25 / 0.65);
   --alert-fg: color-mix(in oklch, var(--destructive) 92%, black);
   --toast-action: oklch(0.8 0.12 265);
+  /* On-screen keyboard height: env() on Chromium, overridden from JS elsewhere. */
+  --kb: env(keyboard-inset-height, 0px);
 }
 
 :root[data-theme="dark"] {
@@ -713,7 +715,7 @@ th.center {
 
 @media (max-width: 520px) {
   .container {
-    padding: max(14px, env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(var(--dock-h, 140px) + 16px) calc(12px + env(safe-area-inset-left));
+    padding: max(14px, env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(var(--dock-h, 140px) + var(--kb) + 16px) calc(12px + env(safe-area-inset-left));
   }
 
   .header-row {
@@ -1262,8 +1264,9 @@ dialog.sheet::backdrop {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: var(--kb, 0px);
+    bottom: 0;
     z-index: 30;
+    transform: translate3d(0, calc(-1 * var(--kb)), 0);
     gap: 8px;
     padding: 10px calc(12px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
     background: color-mix(in oklch, var(--card) 88%, transparent);
@@ -1320,13 +1323,13 @@ dialog.sheet::backdrop {
   }
 
   .toast {
-    bottom: calc(var(--dock-h, 120px) + var(--kb, 0px) + 10px);
+    bottom: calc(var(--dock-h, 120px) + var(--kb) + 10px);
   }
 
   dialog.sheet {
     width: 100%;
     max-width: 100%;
-    margin: auto 0 0;
+    margin: auto 0 var(--kb);
     border-radius: 22px 22px 0 0;
     border-bottom: 0;
   }
