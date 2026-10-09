@@ -1127,6 +1127,10 @@ dialog.sheet::backdrop {
   cursor: pointer;
 }
 
+.setting-row[hidden] {
+  display: none;
+}
+
 .setting-text {
   display: grid;
   gap: 2px;

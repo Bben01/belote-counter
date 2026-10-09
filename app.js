@@ -76,7 +76,9 @@ const els = {
   settingsRestartBtn: document.getElementById("settingsRestartBtn"),
   settingHaptics: document.getElementById("settingHaptics"),
   settingGuided: document.getElementById("settingGuided"),
-  hapticsNote: document.getElementById("hapticsNote"),
+  hapticsRow: document.getElementById("hapticsRow"),
+  updateAppBtn: document.getElementById("updateAppBtn"),
+  updateNote: document.getElementById("updateNote"),
   themeColor: document.querySelector('meta[name="theme-color"]'),
 }
 
@@ -844,11 +846,28 @@ const openSettings = () => {
   els.settingTarget.value = String(state.targetScore)
   for (const input of document.querySelectorAll("[data-rule]")) input.checked = settings.rules[input.dataset.rule]
   for (const radio of document.querySelectorAll('input[name="theme"]')) radio.checked = radio.value === settings.theme
-  els.settingHaptics.checked = settings.haptics && canVibrate
+  els.settingHaptics.checked = settings.haptics
+  els.hapticsRow.hidden = !canVibrate
   els.settingGuided.checked = settings.guided
-  els.settingHaptics.disabled = !canVibrate
-  if (!canVibrate) els.hapticsNote.textContent = "Non disponible sur cet appareil"
   els.settingsDialog.showModal()
+}
+
+const updateApp = async () => {
+  els.updateAppBtn.disabled = true
+  els.updateNote.textContent = "Recherche de la dernière version…"
+  try {
+    const sw = navigator.serviceWorker
+    const regs = sw ? await sw.getRegistrations() : []
+    // Fails when offline, so the cached copy is kept.
+    await Promise.all(regs.map((r) => r.update()))
+    await Promise.all(regs.map((r) => r.unregister()))
+    const keys = await caches.keys()
+    await Promise.all(keys.map((k) => caches.delete(k)))
+    location.reload()
+  } catch {
+    els.updateNote.textContent = "Impossible de mettre à jour (hors ligne ?)"
+    els.updateAppBtn.disabled = false
+  }
 }
 
 const wireSettings = () => {
@@ -878,6 +897,8 @@ const wireSettings = () => {
     dialog.close()
     handleRestart()
   })
+
+  els.updateAppBtn.addEventListener("click", updateApp)
 
   for (const input of document.querySelectorAll("[data-rule]")) {
     input.addEventListener("change", () => {

@@ -301,10 +301,18 @@
           <label><input type="radio" name="theme" value="dark" /><span>Sombre</span></label>
         </div>
       </div>
-      <label class="setting-row">
-        <span class="setting-text">Vibrations<small id="hapticsNote">Retour haptique à l’ajout et à la victoire</small></span>
+      <label class="setting-row" id="hapticsRow">
+        <span class="setting-text">Vibrations<small>Retour haptique à l’ajout et à la victoire</small></span>
         <input class="switch" type="checkbox" role="switch" id="settingHaptics" />
       </label>
+    </section>
+
+    <section class="settings-group">
+      <h3>Application</h3>
+      <div class="setting-row">
+        <span class="setting-text">Mettre à jour<small id="updateNote">Charge la dernière version, la partie est conservée</small></span>
+        <button class="btn secondary" id="updateAppBtn" type="button">Mettre à jour</button>
+      </div>
     </section>
   </dialog>
 
