@@ -24,6 +24,7 @@ const state = {
 const settings = {
   rules: { ...DEFAULT_RULES },
   haptics: true,
+  guided: false,
   theme: "auto",
 }
 
@@ -39,13 +40,6 @@ const els = {
   remainNous: document.getElementById("remainNous"),
   remainEux: document.getElementById("remainEux"),
   leadText: document.getElementById("leadText"),
-  objectiveText: document.getElementById("objectiveText"),
-  objectiveView: document.getElementById("objectiveView"),
-  objectiveEdit: document.getElementById("objectiveEdit"),
-  objectiveInput: document.getElementById("objectiveInput"),
-  editObjectiveBtn: document.getElementById("editObjectiveBtn"),
-  saveObjectiveBtn: document.getElementById("saveObjectiveBtn"),
-  cancelObjectiveBtn: document.getElementById("cancelObjectiveBtn"),
   restartBtn: document.getElementById("restartBtn"),
   settingsBtn: document.getElementById("settingsBtn"),
   inputDock: document.getElementById("inputDock"),
@@ -81,6 +75,7 @@ const els = {
   settingTarget: document.getElementById("settingTarget"),
   settingsRestartBtn: document.getElementById("settingsRestartBtn"),
   settingHaptics: document.getElementById("settingHaptics"),
+  settingGuided: document.getElementById("settingGuided"),
   hapticsNote: document.getElementById("hapticsNote"),
   themeColor: document.querySelector('meta[name="theme-color"]'),
 }
@@ -195,6 +190,7 @@ const loadSettings = () => {
       if (typeof parsed.rules?.[key] === "boolean") settings.rules[key] = parsed.rules[key]
     }
     if (typeof parsed.haptics === "boolean") settings.haptics = parsed.haptics
+    if (typeof parsed.guided === "boolean") settings.guided = parsed.guided
     if (["auto", "light", "dark"].includes(parsed.theme)) settings.theme = parsed.theme
   } catch {
     // ignore
@@ -445,8 +441,6 @@ const render = () => {
   animateScore(els.scoreEux, "eux", state.totalEux)
   renderScoreMeta()
 
-  els.objectiveText.textContent = `${state.targetScore} pts`
-
   const max = Math.max(state.targetScore, 1)
   const pNous = clamp((state.totalNous / max) * 100, 0, 100)
   const pEux = clamp((state.totalEux / max) * 100, 0, 100)
@@ -575,6 +569,44 @@ const setInput = (text) => {
   els.roundInput.value = text
   setError(null)
   updatePreview()
+  renderChips()
+}
+
+// =========================
+// Quick chips: free words, or guided steps (team -> contract -> outcome)
+// =========================
+const QUICK_WORDS_HTML = els.quickChips.innerHTML
+const CONTRACTS = [80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180]
+const RE_GUIDE = {
+  team: /\b(nous|on|eux|ils|adv)\b/i,
+  contract: /\b\d{2,3}\b|\bcapot\b/i,
+  outcome: /\b(fait|chut)/i,
+  belote: /\bbelote\b/i,
+  capot: /\bcapot\b/i,
+}
+
+const guidedChips = (text) => {
+  if (!RE_GUIDE.team.test(text)) return [["nous", "Nous", "team-nous"], ["eux", "Eux", "team-eux"]]
+  if (!RE_GUIDE.contract.test(text)) return [...CONTRACTS.map((n) => [String(n), String(n)]), ["capot", "capot"]]
+  const chips = []
+  if (!RE_GUIDE.outcome.test(text)) chips.push(["fait", "fait"], ["chute", "chute"])
+  if (!RE_GUIDE.belote.test(text)) chips.push(["belote", "belote"])
+  if (!RE_GUIDE.capot.test(text)) chips.push(["capot", "capot"])
+  return chips
+}
+
+const renderChips = () => {
+  const box = els.quickChips
+  box.classList.toggle("guided", settings.guided)
+  if (!settings.guided) {
+    if (box.dataset.mode !== "words") box.innerHTML = QUICK_WORDS_HTML
+    box.dataset.mode = "words"
+    return
+  }
+  box.dataset.mode = "guided"
+  box.innerHTML = guidedChips(els.roundInput.value)
+    .map(([word, label, cls = ""]) => `<button class="chip ${cls}" type="button" data-word="${word}">${label}</button>`)
+    .join("")
 }
 
 const startEdit = (id) => {
@@ -690,54 +722,6 @@ const dismissWin = () => {
 const undoLastRound = () => {
   const last = state.rounds.at(-1)
   if (last) deleteRound(last.id)
-}
-
-let editingObjective = false
-
-const closeObjectiveEditor = () => {
-  editingObjective = false
-  els.objectiveInput.classList.remove("invalid")
-  els.objectiveEdit.style.display = "none"
-  els.objectiveView.style.display = "flex"
-}
-
-const startEditObjective = () => {
-  editingObjective = true
-  els.objectiveView.style.display = "none"
-  els.objectiveEdit.style.display = "flex"
-  els.objectiveInput.value = String(state.targetScore)
-  els.objectiveInput.focus()
-  els.objectiveInput.select()
-}
-
-const parseObjective = () => {
-  const n = Number(els.objectiveInput.value)
-  return Number.isInteger(n) && n > 0 ? n : null
-}
-
-const commitObjective = () => {
-  if (!editingObjective) return
-  const newTarget = parseObjective()
-  if (newTarget === null) {
-    const input = els.objectiveInput
-    input.classList.remove("invalid")
-    // Force reflow so the shake animation replays.
-    void input.offsetWidth
-    input.classList.add("invalid")
-    input.focus()
-    return
-  }
-  state.targetScore = newTarget
-  updateWinner()
-  saveState()
-  closeObjectiveEditor()
-  render()
-}
-
-const cancelObjective = () => {
-  if (!editingObjective) return
-  closeObjectiveEditor()
-  if (finePointer) els.roundInput.focus()
 }
 
 const wireExamples = () => {
@@ -861,6 +845,7 @@ const openSettings = () => {
   for (const input of document.querySelectorAll("[data-rule]")) input.checked = settings.rules[input.dataset.rule]
   for (const radio of document.querySelectorAll('input[name="theme"]')) radio.checked = radio.value === settings.theme
   els.settingHaptics.checked = settings.haptics && canVibrate
+  els.settingGuided.checked = settings.guided
   els.settingHaptics.disabled = !canVibrate
   if (!canVibrate) els.hapticsNote.textContent = "Non disponible sur cet appareil"
   els.settingsDialog.showModal()
@@ -915,6 +900,12 @@ const wireSettings = () => {
     saveSettings()
     buzz(15)
   })
+
+  els.settingGuided.addEventListener("change", () => {
+    settings.guided = els.settingGuided.checked
+    saveSettings()
+    renderChips()
+  })
 }
 
 // =========================
@@ -962,6 +953,7 @@ els.roundInput.addEventListener("keydown", (e) => {
 els.roundInput.addEventListener("input", () => {
   setError(null)
   updatePreview()
+  renderChips()
 })
 els.cancelEditBtn.addEventListener("click", cancelEdit)
 els.roundsTbody.addEventListener("click", (e) => {
@@ -981,34 +973,6 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && els.winOverlay.classList.contains("active")) dismissWin()
 })
 
-els.editObjectiveBtn.addEventListener("click", startEditObjective)
-els.objectiveView.addEventListener("click", (e) => {
-  // Make the whole pill feel clickable, not just the pencil.
-  if (e.target && e.target.closest && e.target.closest("button")) return
-  startEditObjective()
-})
-els.saveObjectiveBtn.addEventListener("click", commitObjective)
-els.cancelObjectiveBtn.addEventListener("click", cancelObjective)
-// Keep focus in the input so tapping save/cancel doesn't trigger the blur commit first (iOS).
-for (const btn of [els.saveObjectiveBtn, els.cancelObjectiveBtn]) {
-  btn.addEventListener("pointerdown", (e) => e.preventDefault())
-}
-els.objectiveEdit.addEventListener("focusout", (e) => {
-  if (els.objectiveEdit.contains(e.relatedTarget)) return
-  if (parseObjective() === null) cancelObjective()
-  else commitObjective()
-})
-els.objectiveInput.addEventListener("input", () => els.objectiveInput.classList.remove("invalid"))
-els.objectiveInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault()
-    commitObjective()
-  }
-  if (e.key === "Escape") {
-    cancelObjective()
-  }
-})
-
 // Init
 loadSettings()
 applyTheme()
@@ -1020,6 +984,7 @@ wireExamples()
 wireSwipe()
 wireSettings()
 wireDock()
+renderChips()
 // Keep the persisted dismissal; a game already won should not replay the confetti.
 state.winner = computeWinner()
 celebratedWinner = state.winner

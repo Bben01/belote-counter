@@ -55,10 +55,12 @@ Bouton réglages en haut à droite. Les règles sont désactivées par défaut e
 s'appliquent à toute la partie (recalcul immédiat) :
 
 - Arrondir à la dizaine : points de cartes arrondis, total de 160 au lieu de 162.
-- Le preneur doit faire 82 : contrat requis = max(contrat, 82), belote comprise.
+- Attaque plus que la défense : contrat requis = max(contrat, 82), belote comprise.
 - Belote gardée en cas de chute : hors coinche, le preneur conserve ses 20 points.
 
-Aussi : objectif, nouvelle partie, thème (auto / clair / sombre), vibrations.
+Aussi : objectif, nouvelle partie, thème (auto / clair / sombre), vibrations, et
+la saisie guidée (alpha, désactivée par défaut) : les boutons rapides proposent
+Nous/Eux, puis le contrat (80 à 180, capot), puis fait / chute / belote / capot.
 
 ## Tests
 

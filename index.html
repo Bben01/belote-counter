@@ -81,36 +81,6 @@
           <div class="header-row">
             <h1>Compteur Belote</h1>
             <div class="controls" id="controls">
-              <div class="objective" id="objectiveView">
-                <span class="objective-label">Objectif:</span>
-                <span class="objective-value" id="objectiveText">2000 pts</span>
-                <button class="btn ghost icon" id="editObjectiveBtn" type="button" aria-label="Modifier l'objectif">
-                  <svg class="icon" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor"
-                      stroke-width="2" stroke-linejoin="round" />
-                  </svg>
-                </button>
-              </div>
-
-              <div class="objective" id="objectiveEdit" style="display: none">
-                <span class="objective-label">Objectif:</span>
-                <input id="objectiveInput" type="number" inputmode="numeric" min="1" step="10"
-                  aria-label="Objectif en points" />
-                <button class="btn ghost icon" id="saveObjectiveBtn" type="button" aria-label="Valider l'objectif">
-                  <svg class="icon" viewBox="0 0 24 24" fill="none">
-                    <path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                      stroke-linejoin="round" />
-                  </svg>
-                </button>
-                <button class="btn ghost icon" id="cancelObjectiveBtn" type="button" aria-label="Annuler">
-                  <svg class="icon" viewBox="0 0 24 24" fill="none">
-                    <path d="M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  </svg>
-                </button>
-              </div>
-
               <button class="btn secondary hide-mobile" id="restartBtn" type="button">
                 <svg class="icon" viewBox="0 0 24 24" fill="none">
                   <path d="M3 12a9 9 0 0 1 15.4-6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -303,7 +273,7 @@
         <input class="switch" type="checkbox" role="switch" data-rule="rounded" />
       </label>
       <label class="setting-row">
-        <span class="setting-text">Le preneur doit faire 82<small>En plus du contrat, belote comprise</small></span>
+        <span class="setting-text">Attaque plus que la défense<small>Le preneur doit faire au moins 82 en plus du contrat, belote comprise</small></span>
         <input class="switch" type="checkbox" role="switch" data-rule="strictMajority" />
       </label>
       <label class="setting-row">
@@ -311,6 +281,14 @@
         <input class="switch" type="checkbox" role="switch" data-rule="beloteKeptOnFailure" />
       </label>
       <p class="setting-note">Les règles s’appliquent à toutes les donnes de la partie.</p>
+    </section>
+
+    <section class="settings-group">
+      <h3>Saisie</h3>
+      <label class="setting-row">
+        <span class="setting-text"><span>Saisie guidée <span class="badge">alpha</span></span><small>Nous/Eux, puis contrat (80–180, capot), puis fait / chute / belote / capot</small></span>
+        <input class="switch" type="checkbox" role="switch" id="settingGuided" />
+      </label>
     </section>
 
     <section class="settings-group">

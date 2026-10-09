@@ -159,33 +159,6 @@ h1 {
   flex-wrap: wrap;
 }
 
-.objective {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: color-mix(in oklch, var(--muted) 70%, transparent);
-  border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
-}
-
-#objectiveView {
-  cursor: pointer;
-}
-
-#objectiveView:hover {
-  background: color-mix(in oklch, var(--muted) 78%, transparent);
-}
-
-.objective-label {
-  font-size: 12px;
-  color: var(--muted-foreground);
-}
-
-.objective-value {
-  font-weight: 800;
-}
-
 .scoreboard {
   position: relative;
   display: grid;
@@ -343,25 +316,6 @@ input[type="text"]:focus,
 input[type="number"]:focus {
   border-color: color-mix(in oklch, var(--ring) 60%, var(--border));
   box-shadow: 0 0 0 5px color-mix(in oklch, var(--ring) 20%, transparent);
-}
-
-/* Override the global input sizing for the small objective pill editor. */
-#objectiveInput {
-  width: 96px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 14px;
-}
-
-#objectiveInput.invalid {
-  border-color: var(--destructive);
-  box-shadow: 0 0 0 4px color-mix(in oklch, var(--destructive) 18%, transparent);
-  animation: shake 320ms ease;
-}
-
-@keyframes shake {
-  20%, 60% { transform: translateX(-4px); }
-  40%, 80% { transform: translateX(4px); }
 }
 
 .btn {
@@ -751,7 +705,6 @@ th.center {
     transition: none !important;
   }
 
-  #objectiveInput.invalid,
   dialog.sheet[open],
   .overlay.active .modal {
     animation: none !important;
@@ -765,25 +718,7 @@ th.center {
 
   .header-row {
     gap: 10px;
-  }
-
-  .controls {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .objective {
-    flex: 1 1 auto;
-    justify-content: space-between;
-  }
-
-  .objective-label {
-    display: none;
-  }
-
-  #objectiveInput {
-    width: 88px;
-    font-size: 16px;
+    align-items: center;
   }
 
   .score-pair {
@@ -921,6 +856,33 @@ th.center {
   display: none;
 }
 
+.quick-chips.guided {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quick-chips.guided .chip {
+  min-width: 44px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--primary) 15%, transparent);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 .preview {
   min-height: 18px;
   font-size: 13px;
@@ -947,11 +909,15 @@ th.center {
 
 .td-actions {
   white-space: nowrap;
+  text-overflow: clip;
+  overflow: visible;
 }
 
 .td-actions .table-action {
   display: inline-grid;
-  margin: 0 2px;
+  width: 34px;
+  height: 34px;
+  margin: 0 1px;
 }
 
 tbody tr.editing {
