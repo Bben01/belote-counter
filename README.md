@@ -42,6 +42,24 @@ Live app (GitHub Pages): https://bben01.github.io/belote-counter/
 Les points de cartes sont compris entre 0 et 162, hors belote. Les contrats
 170/180 déclarés « faits » nécessitent donc la belote du preneur.
 
+## Modifier une donne
+
+Sur ordinateur, boutons crayon / corbeille dans l'historique. Sur mobile, glisser
+une donne vers la gauche (ou la toucher) pour afficher Modifier / Supprimer.
+Modifier recharge la saisie dans le champ ; toute la partie est recalculée.
+Chaque suppression ou modification peut être annulée pendant 5 secondes.
+
+## Réglages
+
+Bouton réglages en haut à droite. Les règles sont désactivées par défaut et
+s'appliquent à toute la partie (recalcul immédiat) :
+
+- Arrondir à la dizaine : points de cartes arrondis, total de 160 au lieu de 162.
+- Le preneur doit faire 82 : contrat requis = max(contrat, 82), belote comprise.
+- Belote gardée en cas de chute : hors coinche, le preneur conserve ses 20 points.
+
+Aussi : objectif, nouvelle partie, thème (auto / clair / sombre), vibrations.
+
 ## Tests
 
 Exécuter `deno test` à la racine du projet.

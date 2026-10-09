@@ -22,7 +22,20 @@ const CONTRACT_SET = new Set(VALID_CONTRACTS)
 const nowId = () =>
   globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + "-" + String(Math.floor(Math.random() * 1e6))
 
-export function calculateScore(data) {
+export const DEFAULT_RULES = Object.freeze({
+  // Card points rounded to the nearest ten (162 becomes 160).
+  rounded: false,
+  // Taker needs at least 82 (belote included) on top of the contract.
+  strictMajority: false,
+  // Without coinche, a failing taker keeps their own belote.
+  beloteKeptOnFailure: false,
+})
+
+export const MIN_MAJORITY = 82
+
+const round10 = (n) => Math.round(n / 10) * 10
+
+export function calculateScore(data, rules = DEFAULT_RULES) {
   const { taker, contract, pointsScored, beloteOwner, coinche, totalNous, totalEux, isCapot, isDefenseCapot } = data
 
   let multiplier = 1
@@ -31,42 +44,38 @@ export function calculateScore(data) {
 
   const isCoinched = multiplier > 1
   const takerBelote = beloteOwner === taker ? BELOTE_POINTS : 0
+  const cardsTotal = rules.rounded ? round10(TOTAL_CARDS_POINTS) : TOTAL_CARDS_POINTS
+  const required = rules.strictMajority ? Math.max(contract, MIN_MAJORITY) : contract
 
   let isSuccess
   if (isDefenseCapot) isSuccess = false
   else if (isCapot) isSuccess = pointsScored >= TOTAL_CARDS_POINTS
-  else isSuccess = pointsScored + takerBelote >= contract
+  else isSuccess = pointsScored + takerBelote >= required
 
-  let deltaNous = 0
-  let deltaEux = 0
+  let takerPoints = 0
+  let defensePoints = 0
   let winner = taker
 
   if (isSuccess) {
-    const cardTaker = isCapot ? CAPOT_POINTS : isCoinched ? TOTAL_CARDS_POINTS : pointsScored
-    const cardDefense = isCapot || isCoinched ? 0 : TOTAL_CARDS_POINTS - pointsScored
+    const takerCards = rules.rounded ? round10(pointsScored) : pointsScored
+    const cardTaker = isCapot ? CAPOT_POINTS : isCoinched ? cardsTotal : takerCards
+    const cardDefense = isCapot || isCoinched ? 0 : cardsTotal - takerCards
 
-    let takerPoints = cardTaker + contract * multiplier
-    let defensePoints = cardDefense
+    takerPoints = cardTaker + contract * multiplier
+    defensePoints = cardDefense
 
     // In a coinche, the winning team takes the belote.
     if (beloteOwner === taker || (beloteOwner && isCoinched)) takerPoints += BELOTE_POINTS
     else if (beloteOwner) defensePoints += BELOTE_POINTS
-
-    if (taker === Team.NOUS) {
-      deltaNous = takerPoints
-      deltaEux = defensePoints
-    } else {
-      deltaEux = takerPoints
-      deltaNous = defensePoints
-    }
   } else {
     winner = taker === Team.NOUS ? Team.EUX : Team.NOUS
-    let defensePoints = (isDefenseCapot ? CAPOT_POINTS : TOTAL_CARDS_POINTS) + contract * multiplier
-    if (beloteOwner) defensePoints += BELOTE_POINTS
-
-    if (taker === Team.NOUS) deltaEux = defensePoints
-    else deltaNous = defensePoints
+    defensePoints = (isDefenseCapot ? CAPOT_POINTS : cardsTotal) + contract * multiplier
+    if (beloteOwner === taker && !isCoinched && rules.beloteKeptOnFailure) takerPoints += BELOTE_POINTS
+    else if (beloteOwner) defensePoints += BELOTE_POINTS
   }
+
+  const deltaNous = taker === Team.NOUS ? takerPoints : defensePoints
+  const deltaEux = taker === Team.NOUS ? defensePoints : takerPoints
 
   return {
     ...data,
@@ -205,7 +214,7 @@ function parseManual(text, body, currentTotalNous, currentTotalEux) {
   }
 }
 
-export function parseInput(text, currentTotalNous = 0, currentTotalEux = 0) {
+export function parseInput(text, currentTotalNous = 0, currentTotalEux = 0, rules = DEFAULT_RULES) {
   const trimmed = String(text ?? "").trim()
   if (trimmed.startsWith(MANUAL_PREFIX)) {
     return parseManual(text, trimmed.slice(MANUAL_PREFIX.length), currentTotalNous, currentTotalEux)
@@ -309,7 +318,8 @@ export function parseInput(text, currentTotalNous = 0, currentTotalEux = 0) {
     else pointsScored = otherNum < 82 ? TOTAL_CARDS_POINTS - otherNum : otherNum
   } else if (hasSuccessWord) {
     // With no exact score, assume the minimum cards needed, including belote.
-    pointsScored = contract - (beloteOwner === taker ? BELOTE_POINTS : 0)
+    const required = rules.strictMajority ? Math.max(contract, MIN_MAJORITY) : contract
+    pointsScored = required - (beloteOwner === taker ? BELOTE_POINTS : 0)
     if (pointsScored > TOTAL_CARDS_POINTS) {
       return { error: "Ce contrat nécessite la belote du preneur pour être fait. Précisez la belote ou les points." }
     }
@@ -338,5 +348,5 @@ export function parseInput(text, currentTotalNous = 0, currentTotalEux = 0) {
     coinche,
     totalNous: currentTotalNous,
     totalEux: currentTotalEux,
-  })
+  }, rules)
 }

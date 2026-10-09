@@ -1,4 +1,4 @@
-import { Team, CoincheStatus, calculateScore, parseInput } from "./logic.js"
+import { Team, CoincheStatus, DEFAULT_RULES, calculateScore, parseInput } from "./logic.js"
 
 const assert = (cond, msg) => {
   if (!cond) throw new Error(msg || "assertion failed")
@@ -593,6 +593,35 @@ for (const [text, deltaNous, deltaEux] of [
 for (const text of ["Nous 100 fait, eux capot", "Nous 100 capot inversé nous capot"]) {
   Deno.test(`defense capot rejects contradictions: ${text}`, () => {
     assert(parseInput(text).error, `expected error for ${text}`)
+  })
+}
+
+for (const [text, rules, deltaNous, deltaEux] of [
+  // Rounded: taker card points to the nearest ten, defense gets 160 minus that.
+  ["Nous 100 125", { rounded: true }, 230, 30],
+  ["Nous 100 eux 37", { rounded: true }, 230, 30],
+  ["Nous 100 eux 45", { rounded: true }, 220, 40],
+  ["Nous 100 chute", { rounded: true }, 0, 260],
+  ["Nous 100 coinche fait", { rounded: true }, 360, 0],
+  ["Nous 120 capot", { rounded: true }, 370, 0],
+  ["Nous 100 eux capot", { rounded: true }, 0, 350],
+  // Strict majority: contract 80 needs 82.
+  ["Nous 80 81", { strictMajority: true }, 0, 242],
+  ["Nous 80 81 belote", { strictMajority: true }, 181, 81],
+  ["Nous 80 82", { strictMajority: true }, 162, 80],
+  ["Nous 80 fait", { strictMajority: true }, 162, 80],
+  ["Nous 80 81", {}, 161, 81],
+  // Belote kept by a failing taker (no coinche).
+  ["Nous 120 chute belote", { beloteKeptOnFailure: true }, 20, 282],
+  ["Nous 120 chute belote eux", { beloteKeptOnFailure: true }, 0, 302],
+  ["Nous 120 coinche chute belote", { beloteKeptOnFailure: true }, 0, 422],
+  ["Nous 120 chute belote", {}, 0, 302],
+]) {
+  Deno.test(`rules ${JSON.stringify(rules)}: ${text}`, () => {
+    const r = parseInput(text, 0, 0, { ...DEFAULT_RULES, ...rules })
+    eq(r.error, undefined)
+    eq(r.deltaNous, deltaNous, "nous")
+    eq(r.deltaEux, deltaEux, "eux")
   })
 }
 
